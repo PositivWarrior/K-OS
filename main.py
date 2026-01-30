@@ -7,6 +7,7 @@ from google.genai import types
 def main():
     parser = argparse.ArgumentParser(description="K-OS: Agentic AI Enviorment")
     parser.add_argument("user_prompt", type=str, help="The prompt to send to the AI Agent")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
 
     messages = [
@@ -36,8 +37,11 @@ def main():
     if response.usage_metadata is None:
         raise RuntimeError("API request failed: usage_metadata is missing")
 
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    if args.verbose:
+        print(f"User prompt: {args.user_prompt}")
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    
     print(f"Response:\n {response.text}")
 
 if __name__ == "__main__":
