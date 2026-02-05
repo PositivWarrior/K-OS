@@ -4,8 +4,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from prompts import system_prompt
-from call_function import available_functions
-from prompts import system_prompt
+from call_function import available_functions, call_function
 
 def main():
     parser = argparse.ArgumentParser(description="K-OS: Agentic AI Enviorment")
@@ -42,16 +41,33 @@ def main():
         )
     )
 
+    if response.usage_metadata is None:
+        raise RuntimeError("API request failed: usage_metadata is missing")
+
     part = response.candidates[0].content.parts[0]
+    function_responses = []
 
     if part.function_call:
         for function_call in response.function_calls:
-            print(f"Calling function: {function_call.name}({function_call.args})")
+            function_call_result = call_function(function_call, verbose=args.verbose)
+
+            if not function_call_result.parts:
+                raise Exception("Function call result has no parts")
+
+            resp_obj = function_call_result.parts[0].function_response
+            if resp_obj is None:
+                raise Exception("FunctionResponse is None")
+
+            if resp_obj.response is None:
+                raise Exception("FunctionResponse.response is None")
+
+            function_responses.append(function_call_result.parts[0])
+
+            if args.verbose:
+                print(f"-> {resp_obj.response}")
+
     elif part.text:
         print(f"Response:\n{part.text}")
-
-    if response.usage_metadata is None:
-        raise RuntimeError("API request failed: usage_metadata is missing")
 
     if args.verbose:
         print(f"User prompt: {args.user_prompt}")
