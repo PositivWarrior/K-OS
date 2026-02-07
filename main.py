@@ -31,50 +31,44 @@ def main():
 
     model_id = "gemini-2.5-flash"
 
-    response = client.models.generate_content(
-        model=model_id,
-        contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[available_functions],
-            system_instruction=system_prompt,
-            temperature=0
+    for i in range(20):
+        response = client.models.generate_content(
+            model=model_id,
+            contents=messages,
+            config=types.GenerateContentConfig(
+                tools=[available_functions],
+                system_instruction=system_prompt,
+                temperature=0
+            )
         )
-    )
 
-    if response.usage_metadata is None:
-        raise RuntimeError("API request failed: usage_metadata is missing")
+        if response.usage_metadata is None:
+            raise RuntimeError("API request failed: usage_metadata is missing")
 
-    part = response.candidates[0].content.parts[0]
-    function_responses = []
+        if response.candidates:
+            for candidate in response.candidates:
+                messages.append(candidate.content)
 
-    if part.function_call:
-        for function_call in response.function_calls:
-            function_call_result = call_function(function_call, verbose=args.verbose)
+        part = response.candidates[0].content.parts[0] # TODO: Check if this is the best way to handle this
 
-            if not function_call_result.parts:
-                raise Exception("Function call result has no parts")
+        if part.function_call:
+            function_responses = []
+            for function_call in response.function_calls:
+                function_call_result = call_function(function_call, verbose=args.verbose)
+                function_responses.append(function_call_result.parts[0])
 
-            resp_obj = function_call_result.parts[0].function_response
-            if resp_obj is None:
-                raise Exception("FunctionResponse is None")
+                if args.verbose:
+                    print(f"-> {function_call_result.parts[0].function_response.response}")
+            
+            messages.append(types.Content(role="user", parts=function_responses))
+            continue
 
-            if resp_obj.response is None:
-                raise Exception("FunctionResponse.response is None")
+        elif part.text:
+            print(f"\nFinal response:\n{part.text}")
+            return
 
-            function_responses.append(function_call_result.parts[0])
-
-            if args.verbose:
-                print(f"-> {resp_obj.response}")
-
-    elif part.text:
-        print(f"Response:\n{part.text}")
-
-    if args.verbose:
-        print(f"User prompt: {args.user_prompt}")
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-    
-    print(f"Response:\n {response.text}")
+    print(f"Error: Agent exceeded maximum iterations (20) without reaching a conclusion.")
+    exit(1)
 
 if __name__ == "__main__":
     main()

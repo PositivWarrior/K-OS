@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 
 def format_json_output(expression: str, result: float, indent: int = 2) -> str:
@@ -10,5 +11,6 @@ def format_json_output(expression: str, result: float, indent: int = 2) -> str:
     output_data = {
         "expression": expression,
         "result": result_to_dump,
+        "timestamp": datetime.now().isoformat(),
     }
     return json.dumps(output_data, indent=indent)
