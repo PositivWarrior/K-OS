@@ -29,7 +29,7 @@ def main():
 
     client = genai.Client(api_key=api_key)
 
-    model_id = "gemini-2.5-flash"
+    model_id = "gemini-2.0-flash"
 
     for i in range(20):
         response = client.models.generate_content(
